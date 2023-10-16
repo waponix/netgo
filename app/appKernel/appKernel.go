@@ -14,8 +14,7 @@ func New() *Kernel {
 }
 
 func (k Kernel) Init() {
-	r := router.Router{}
-	r.
+	router.Instance().
 		Register(
 			router.Get("/get"),
 			router.Post("/post"),
@@ -30,7 +29,7 @@ func (k Kernel) Init() {
 			router.Delete("/delete"),
 		)
 
-	for _, rt := range r.Routes {
+	for _, rt := range router.Instance().Routes {
 		fmt.Println(rt)
 	}
 }

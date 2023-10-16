@@ -9,17 +9,32 @@ const (
 	DELETE = "DELETE"
 )
 
-type Router struct {
+type RouterInterface interface {
+	Register(...RouterInterface) *router
+	RegisterGroup(string, ...RouterInterface) *router
+}
+
+type router struct {
 	Routes []RouteInterface
 }
 
-func (r *Router) Register(routers ...RouteInterface) *Router {
+var routerInstance *router
+
+func Instance() *router {
+	if routerInstance == nil {
+		routerInstance = &router{}
+	}
+
+	return routerInstance
+}
+
+func (r *router) Register(routers ...RouteInterface) *router {
 	r.Routes = routers
 	return r
 }
 
 // register a group of routes by defining the group's base path first
-func (r *Router) RegisterGroup(p string, rts ...RouteInterface) *Router {
+func (r *router) RegisterGroup(p string, rts ...RouteInterface) *router {
 	for _, rt := range rts {
 		p1 := strings.Split(p, "/")
 		p2 := strings.Split(rt.Path(), "/")

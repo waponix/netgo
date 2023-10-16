@@ -1,14 +1,11 @@
 package main
 
 import (
-	"github.com/waponix/netgo/logger"
+	"github.com/waponix/netgo/app/appKernel"
 )
 
 func main() {
-	appLog := logger.New()
+	kernel := appKernel.New()
 
-	appLog.Filename = "dev.log"
-	appLog.LogLevels = []string{logger.INFO, logger.ERROR}
-
-	appLog.Info("App was initialized")
+	kernel.Init()
 }

@@ -24,22 +24,30 @@ const (
 	DATETIME_FORMAT = "2006-01-02 15:04:05"
 )
 
-type log struct {
+type LogInterface interface {
+	Info(string) error
+	Debug(string) error
+	Notice(string) error
+	Error(string) error
+	Fatal(string) error
+}
+
+type Log struct {
 	Filename  string
 	LogLevels []string
 }
 
 // public getter for the logger struct
-func New() *log {
+func New() *Log {
 	// set the default values for the filename
-	return &log{
+	return &Log{
 		Filename:  "",
 		LogLevels: []string{INFO, DEBUG, NOTICE, ERROR, FATAL},
 	}
 }
 
 // public: write info log
-func (l *log) Info(message string) error {
+func (l *Log) Info(message string) error {
 	var err error = nil
 	// only log when log level is present in the LogLevels
 	if sliceUtil.Use(l.LogLevels).InItems(INFO) {
@@ -49,7 +57,7 @@ func (l *log) Info(message string) error {
 }
 
 // public: write debug log
-func (l *log) Debug(message string) error {
+func (l *Log) Debug(message string) error {
 	var err error = nil
 	// only log when log level is present in the LogLevels
 	if sliceUtil.Use(l.LogLevels).InItems(DEBUG) {
@@ -59,7 +67,7 @@ func (l *log) Debug(message string) error {
 }
 
 // public: write notice log
-func (l *log) Notice(message string) error {
+func (l *Log) Notice(message string) error {
 	var err error = nil
 	// only log when log level is present in the LogLevels
 	if sliceUtil.Use(l.LogLevels).InItems(NOTICE) {
@@ -69,7 +77,7 @@ func (l *log) Notice(message string) error {
 }
 
 // public: write error log
-func (l *log) Error(message string) error {
+func (l *Log) Error(message string) error {
 	var err error = nil
 	// only log when log level is present in the LogLevels
 	if sliceUtil.Use(l.LogLevels).InItems(ERROR) {
@@ -79,7 +87,7 @@ func (l *log) Error(message string) error {
 }
 
 // public: write fatal log
-func (l *log) Fatal(message string) error {
+func (l *Log) Fatal(message string) error {
 	var err error = nil
 	// only log when log level is present in the LogLevels
 	if sliceUtil.Use(l.LogLevels).InItems(FATAL) {
@@ -89,7 +97,7 @@ func (l *log) Fatal(message string) error {
 }
 
 // does the actual writing to the log
-func (l *log) writeLog(line string) error {
+func (l *Log) writeLog(line string) error {
 	// Open the file for appending (or create it if it doesn't exist)
 	file, err := os.OpenFile(l.Filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {

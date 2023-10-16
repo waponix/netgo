@@ -11,7 +11,7 @@ import (
 func TestLoggerType(t *testing.T) {
 	l := New()
 	loggerType := reflect.TypeOf(l)
-	expectedType := reflect.TypeOf(&log{})
+	expectedType := reflect.TypeOf(&Log{})
 
 	if loggerType != expectedType {
 		t.Fatalf(`New() func should be returning type %v returned %v`, expectedType, loggerType)

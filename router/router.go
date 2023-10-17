@@ -1,6 +1,9 @@
 package router
 
-import "strings"
+import (
+	"net/http"
+	"strings"
+)
 
 const (
 	GET    = "GET"
@@ -9,6 +12,7 @@ const (
 	DELETE = "DELETE"
 )
 
+// ===== STARTOF Router =====
 type RouterInterface interface {
 	Register(...RouterInterface) *router
 	RegisterGroup(string, ...RouterInterface) *router
@@ -28,6 +32,7 @@ func Instance() *router {
 	return routerInstance
 }
 
+// register routes
 func (r *router) Register(routers ...RouteInterface) *router {
 	r.Routes = routers
 	return r
@@ -52,18 +57,33 @@ func (r *router) RegisterGroup(p string, rts ...RouteInterface) *router {
 	return r
 }
 
+func (r *router) Mux() *http.ServeMux {
+	mux := http.NewServeMux()
+
+	for _, route := range r.Routes {
+		handler := route.Apply()
+
+		mux.Handle(route.Path(), handler)
+	}
+
+	return mux
+}
+
+// ===== ENDOF Router =====
+
+// ===== STARTOF Route =====
 type RouteInterface interface {
 	Method() []string
 	SetPath(string) RouteInterface
 	Path() string
-	Responder() ResponderFunc
 	Middlewares() []MiddlewareFunc
+	Apply() http.Handler
 }
 
 type route struct {
 	method      []string
 	path        string
-	responder   ResponderFunc
+	handler     http.HandlerFunc
 	middlewares []MiddlewareFunc
 }
 
@@ -80,54 +100,85 @@ func (r *route) Path() string {
 	return r.path
 }
 
-func (r *route) Responder() ResponderFunc {
-	return r.responder
-}
-
 func (r *route) Middlewares() []MiddlewareFunc {
 	return r.middlewares
 }
 
-func Route(m []string, p string, r ResponderFunc, ms ...MiddlewareFunc) RouteInterface {
+func (r *route) Apply() http.Handler {
+	if len(r.middlewares) <= 0 {
+		return http.Handler(r.handler)
+	}
+
+	handler := http.Handler(r.handler)
+	for _, m := range r.middlewares {
+		m := middleware(m)
+		handler = m(handler)
+	}
+
+	return handler
+}
+
+func middleware(m MiddlewareFunc) RouteMiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ok := m(r, next)
+
+			if ok {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
+}
+
+func Route(m []string, p string, r http.HandlerFunc, ms ...MiddlewareFunc) RouteInterface {
+
 	return &route{
 		method:      m,
 		path:        p,
-		responder:   r,
+		handler:     r,
 		middlewares: ms,
 	}
 }
 
-func Get(p string, ms ...MiddlewareFunc) RouteInterface {
+func Get(p string, r http.HandlerFunc, ms ...MiddlewareFunc) RouteInterface {
 	return &route{
 		method:      []string{GET},
 		path:        p,
+		handler:     r,
 		middlewares: ms,
 	}
 }
 
-func Post(p string, ms ...MiddlewareFunc) RouteInterface {
+func Post(p string, r http.HandlerFunc, ms ...MiddlewareFunc) RouteInterface {
 	return &route{
 		method:      []string{POST},
 		path:        p,
+		handler:     r,
 		middlewares: ms,
 	}
 }
 
-func Put(p string, ms ...MiddlewareFunc) RouteInterface {
+func Put(p string, r http.HandlerFunc, ms ...MiddlewareFunc) RouteInterface {
 	return &route{
 		method:      []string{PUT},
 		path:        p,
+		handler:     r,
 		middlewares: ms,
 	}
 }
 
-func Delete(p string, ms ...MiddlewareFunc) RouteInterface {
+func Delete(p string, r http.HandlerFunc, ms ...MiddlewareFunc) RouteInterface {
 	return &route{
 		method:      []string{DELETE},
 		path:        p,
+		handler:     r,
 		middlewares: ms,
 	}
 }
 
-type MiddlewareFunc func() bool
-type ResponderFunc func()
+// ===== ENDOF Route =====
+
+// ===== TYPES =====
+
+type RouteMiddlewareFunc func(http.Handler) http.Handler
+type MiddlewareFunc func(*http.Request, http.Handler) bool

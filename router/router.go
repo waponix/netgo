@@ -19,14 +19,16 @@ type RouterInterface interface {
 }
 
 type router struct {
-	Routes []RouteInterface
+	Routes RoutesMap
 }
 
 var routerInstance *router
 
 func Instance() *router {
 	if routerInstance == nil {
-		routerInstance = &router{}
+		routerInstance = &router{
+			Routes: make(RoutesMap),
+		}
 	}
 
 	return routerInstance
@@ -34,7 +36,23 @@ func Instance() *router {
 
 // register routes
 func (r *router) Register(routers ...RouteInterface) *router {
-	r.Routes = routers
+	return r.register(routers)
+}
+
+func (r *router) register(routers []RouteInterface) *router {
+
+	for _, rt := range routers {
+		_, ok := r.Routes[rt.Path()]
+
+		if ok {
+			// should have a mechanism to determine which middlewares and handler to use depending on the method
+			// this will ignore for now
+			continue
+		}
+
+		r.Routes[rt.Path()] = rt
+	}
+
 	return r
 }
 
@@ -51,10 +69,9 @@ func (r *router) RegisterGroup(p string, rts ...RouteInterface) *router {
 
 		// join the groups path to the route path
 		rt.SetPath(strings.Join(p1, "/") + "/" + strings.Join(p2, "/"))
-		r.Routes = append(r.Routes, rt)
 	}
 
-	return r
+	return r.register(rts)
 }
 
 func (r *router) Mux() *http.ServeMux {
@@ -182,3 +199,4 @@ func Delete(p string, r http.HandlerFunc, ms ...MiddlewareFunc) RouteInterface {
 
 type RouteMiddlewareFunc func(http.Handler) http.Handler
 type MiddlewareFunc func(*http.Request, http.Handler) bool
+type RoutesMap map[string]RouteInterface

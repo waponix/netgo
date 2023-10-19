@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/waponix/netgo/utils/sliceUtil"
 )
 
@@ -84,16 +85,16 @@ func (_router *router) register(routers []RouteInterface) *router {
 	return _router
 }
 
-func (_router *router) Mux() *http.ServeMux {
-	mux := http.NewServeMux()
+func (_router *router) Mux() *mux.Router {
+	_mux := mux.NewRouter()
 
 	for _, route := range _router.Routes {
 		handler := route.Apply()
 
-		mux.Handle(route.Path(), handler)
+		_mux.Handle(route.Path(), handler)
 	}
 
-	return mux
+	return _mux
 }
 
 // ===== ENDOF Router =====
@@ -196,7 +197,8 @@ func (_route *route) Apply() http.Handler {
 				break
 			}
 
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "<h1>Method not allowed</h1>", http.StatusMethodNotAllowed)
+
 			break
 		}
 	})
@@ -225,6 +227,8 @@ func (_route *route) Apply() http.Handler {
 	})
 }
 
+// Public: Creates a route available for all request method or
+// for a set of specified request method passed through the methods []string parameter
 func Route(methods []string, path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	middlewares := make([]middleware, len(middlewareFuncs))
 	for _, middlewareFunc := range middlewareFuncs {
@@ -243,6 +247,7 @@ func Route(methods []string, path string, handler http.HandlerFunc, middlewareFu
 	}
 }
 
+// Creates a route for the GET request method
 func Get(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	middlewares := make([]middleware, len(middlewareFuncs))
 	for _, middlewareFunc := range middlewareFuncs {
@@ -261,6 +266,7 @@ func Get(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFun
 	}
 }
 
+// Public: Creates a route for the POST request method
 func Post(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	methods := []string{POST}
 	middlewares := make([]middleware, len(middlewareFuncs))
@@ -280,6 +286,7 @@ func Post(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFu
 	}
 }
 
+// Public: Creates a route for the PUT request method
 func Put(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	methods := []string{PUT}
 	middlewares := make([]middleware, len(middlewareFuncs))
@@ -299,6 +306,7 @@ func Put(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFun
 	}
 }
 
+// Public: Creates a route for the PATCH request method
 func Patch(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	methods := []string{PATCH}
 	middlewares := make([]middleware, len(middlewareFuncs))
@@ -318,6 +326,7 @@ func Patch(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareF
 	}
 }
 
+// Public: Creates a route for the HEAD request method
 func Head(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	methods := []string{HEAD}
 	middlewares := make([]middleware, len(middlewareFuncs))
@@ -337,6 +346,7 @@ func Head(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFu
 	}
 }
 
+// Public: Creates a route for the DELETE method
 func Delete(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	methods := []string{DELETE}
 	middlewares := make([]middleware, len(middlewareFuncs))
@@ -356,6 +366,7 @@ func Delete(path string, handler http.HandlerFunc, middlewareFuncs ...Middleware
 	}
 }
 
+// Public: Creates a route for the OPTIONS request method
 func Options(path string, handler http.HandlerFunc, middlewareFuncs ...MiddlewareFunc) RouteInterface {
 	methods := []string{OPTIONS}
 	middlewares := make([]middleware, len(middlewareFuncs))
@@ -372,16 +383,6 @@ func Options(path string, handler http.HandlerFunc, middlewareFuncs ...Middlewar
 		handler:     handler,
 		handlers:    HandlerMap{OPTIONS: handler},
 		middlewares: middlewares,
-	}
-}
-
-func toMiddleware(m MiddlewareFunc, router RouteInterface) RouteMiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if isMethodAllowed(r.Method, router.Methods()) {
-				m(w, r)
-			}
-		})
 	}
 }
 
